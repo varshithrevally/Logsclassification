@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogAI | Intelligence Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #eef2ff, #f8fafc);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        /* Prevents horizontal overflow */
+        .wrap-text {
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-12 px-4">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-12">
+            <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">LogAI <span
+                    class="text-indigo-600">Classifier</span></h1>
+        </div>
+
+        <div class="glass-card rounded-[2rem] p-8 mb-12 max-w-2xl mx-auto">
+            <div id="dropZone"
+                class="group border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center hover:border-indigo-400 hover:bg-white/50 transition-all cursor-pointer">
+                <input type="file" id="fileInput" accept=".csv" class="hidden">
+                <div
+                    class="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform text-2xl">
+                    📄</div>
+                <h3 id="fileName" class="text-lg font-semibold text-slate-800">Drop your log file here</h3>
+                <p class="text-slate-500 text-sm mt-1">CSV must include 'source' and 'log_message'</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                <button onclick="process('view')"
+                    class="flex items-center justify-center gap-2 border-2 border-slate-100 bg-white py-4 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all">
+                    <span>👁️</span> View Results
+                </button>
+                <button onclick="process('download')"
+                    class="btn-primary flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-white active:scale-95 shadow-lg shadow-indigo-100">
+                    <span>📥</span> Download CSV
+                </button>
+            </div>
+        </div>
+
+        <div id="loader" class="hidden text-center py-10 animate-pulse">
+            <div
+                class="inline-block w-10 h-10 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin">
+            </div>
+            <p class="mt-4 text-slate-600 font-semibold uppercase tracking-widest text-[10px]">Analyzing log patterns...
+            </p>
+        </div>
+
+        <div id="previewSection" class="hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h2 class="text-2xl font-bold text-slate-800">Classified Results</h2>
+                <span id="resultCount"
+                    class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-black uppercase"></span>
+            </div>
+
+            <div id="resultsContainer" class="space-y-4">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = () => fileName.textContent = fileInput.files[0]?.name || "Drop your log file here";
+
+        async function process(mode) {
+            const file = fileInput.files[0];
+            if (!file) return alert("Please select a file first!");
+
+            const loader = document.getElementById('loader');
+            const preview = document.getElementById('previewSection');
+
+            loader.classList.remove('hidden');
+            preview.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`/classify/?mode=${mode}`, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error("Processing Error");
+
+                if (mode === 'download') {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Classified_${file.name}`;
+                    a.click();
+                } else {
+                    const json = await response.json();
+                    renderResults(json.data);
+                    preview.classList.remove('hidden');
+                    window.scrollTo({ top: preview.offsetTop - 20, behavior: 'smooth' });
+                }
+            } catch (err) {
+                alert("Error processing file. Ensure columns are correct.");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function renderResults(data) {
+            const container = document.getElementById('resultsContainer');
+            const countLabel = document.getElementById('resultCount');
+
+            countLabel.innerText = `${data.length} Entries`;
+
+            if (data.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400">No data found.</p>`;
+                return;
+            }
+
+            container.innerHTML = data.map(row => `
+                <div class="glass-card rounded-2xl p-6 transition-all hover:shadow-md border-l-4 border-indigo-500">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Source:</span>
+                            <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">${row.source}</span>
+                        </div>
+                        <span class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">
+                            ${row.target_label}
+                        </span>
+                    </div>
+                    <div class="text-slate-600 text-sm font-medium wrap-text leading-relaxed">
+                        ${row.log_message}
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+
+</html>
