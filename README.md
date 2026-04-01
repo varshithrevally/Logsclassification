@@ -1,9 +1,11 @@
 ## Logs Classification With Hybrid Classification Framework
+
 This project implements a hybrid log classification system designed to handle log data with varying levels of complexity and structure. Instead of relying on a single technique, it combines rule-based, machine learning, and LLM-based approaches to achieve more reliable and adaptable classification across different types of log patterns.
 
 The system is built to work efficiently with both well-structured logs and ambiguous or poorly labeled data. By selecting the appropriate classification strategy based on the nature of the input, it ensures better accuracy and flexibility in real-world scenarios.
 
 ## Overview
+
 Log data often ranges from highly predictable patterns to completely unstructured messages. A single model is rarely sufficient to handle this diversity. This project addresses that limitation by integrating three complementary classification methods:
 
 - Regex-based classification for simple and deterministic patterns
@@ -13,19 +15,35 @@ Log data often ranges from highly predictable patterns to completely unstructure
 These methods work together to form a layered classification pipeline.
 
 ## Classification Approaches
+
 1. Regular Expression (Regex)
 
-This approach handles the most straightforward log patterns. It is useful when log formats are consistent and can be defined using explicit rules. Regex classification is fast and efficient, making it suitable as the first layer in the pipeline.
+- Handles simple and predictable log patterns
+- Works well when log formats are consistent
+- Uses predefined rules for classification
+- Very fast and lightweight compared to other methods
+- Used as the first layer in the classification pipeline
 
 2. Sentence Transformer + Logistic Regression
 
-For logs that are more complex but have sufficient labeled data, this method is used. Sentence Transformers convert log messages into dense vector embeddings, which are then passed to a Logistic Regression model for classification. This approach balances performance and interpretability while handling semantic variations in log messages.
+- Designed for moderately complex log patterns
+- Requires sufficient labeled training data
+- Converts log messages into dense vector embeddings
+- Uses Logistic Regression for final classification
+- Captures semantic meaning beyond exact text matching
+- Provides a balance between accuracy and performance
 
 3. Large Language Models (LLM)
 
-When logs are complex and labeled data is limited or unavailable, LLMs are used as a fallback. They provide contextual understanding and can infer patterns that are difficult to capture using traditional models. This makes the system robust in handling edge cases and unseen log formats.
+- Used for highly complex or ambiguous log patterns
+- Does not require large labeled datasets
+- Acts as a fallback when other methods fail or have low confidence
+- Understands context and intent in log messages
+- Effective for handling unseen or rare log formats
+- Improves overall robustness of the system
 
 ## Architecture
+
 <img width="922" height="584" alt="architecture" src="https://github.com/user-attachments/assets/57636893-ce27-421d-ad80-1a6afc56abe1" />
 The system follows a hybrid decision flow:
 
@@ -65,11 +83,14 @@ Log Classification/
 ## Setup Instructions
 
 1. Install Dependencies
-Ensure Python is installed, then install the required libraries:
+   Ensure Python is installed, then install the required libraries:
+
 ```
 pip install -r requirements.txt
 ```
+
 3. Run the FastAPI Server
+
 ```
 uvicorn server:app --reload
 ```
