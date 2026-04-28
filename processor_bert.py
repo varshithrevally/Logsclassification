@@ -1,18 +1,29 @@
 import joblib
-from sentence_transformers import SentenceTransformer
 
-model_embedding = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight embedding model
-model_classification = joblib.load("models/log_classifier.joblib")
+model_embedding = None
+model_classification = None
+
+def load_models():
+    global model_embedding, model_classification
+    
+    if model_embedding is None:
+        from sentence_transformers import SentenceTransformer
+        model_embedding = SentenceTransformer("all-MiniLM-L6-v2", cache_folder="./models")
+    
+    if model_classification is None:
+        model_classification = joblib.load("models/log_classifier.joblib")
 
 
 def classify_with_bert(log_message):
+    load_models()
+    
     embeddings = model_embedding.encode([log_message])
     probabilities = model_classification.predict_proba(embeddings)[0]
+    
     if max(probabilities) < 0.5:
         return "Unclassified"
-    predicted_label = model_classification.predict(embeddings)[0]
     
-    return predicted_label
+    return model_classification.predict(embeddings)[0]
 
 
 if __name__ == "__main__":
